@@ -26,7 +26,6 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ logs, onClearLogs })
   const [autoScroll, setAutoScroll] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const terminalEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -212,7 +211,6 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ logs, onClearLogs })
             </div>
           ))
         )}
-        <div ref={terminalEndRef} />
       </div>
     </div>
   );

@@ -78,6 +78,9 @@ export default function DashboardPage() {
   // Check Web Push subscription on mount & scroll to top
   useEffect(() => {
     if (typeof window !== "undefined") {
+      if ("scrollRestoration" in history) {
+        history.scrollRestoration = "manual";
+      }
       window.scrollTo(0, 0);
       if ("serviceWorker" in navigator && "PushManager" in window) {
         navigator.serviceWorker
