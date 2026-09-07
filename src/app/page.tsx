@@ -75,16 +75,19 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Check Web Push subscription on mount
+  // Check Web Push subscription on mount & scroll to top
   useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then(async (registration) => {
-          const subscription = await registration.pushManager.getSubscription();
-          setPushSubscribed(!!subscription);
-        })
-        .catch((err) => console.warn("[SW Register]:", err));
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+      if ("serviceWorker" in navigator && "PushManager" in window) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then(async (registration) => {
+            const subscription = await registration.pushManager.getSubscription();
+            setPushSubscribed(!!subscription);
+          })
+          .catch((err) => console.warn("[SW Register]:", err));
+      }
     }
   }, []);
 
