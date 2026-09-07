@@ -90,12 +90,32 @@ export default function DashboardPage() {
 
   // Toggle Web Push Subscription
   const handleTogglePush = async () => {
+    // Web Push strictly requires a Secure Context (localhost, 127.0.0.1, or HTTPS)
+    const isLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+    if (typeof window !== "undefined" && !window.isSecureContext && !isLocalhost) {
+      alert(
+        "🔒 Browser Security Requirement:\n\nWeb Push Service Workers require a Secure Context (HTTPS or localhost).\n\nPlease open the dashboard in Firefox via:\n👉 http://localhost:3780 or http://127.0.0.1:3780\n\n(Gmail SMTP Email Alerts are already 100% active on all network connections!)"
+      );
+      return;
+    }
+
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      alert("Web Push is not supported in this browser.");
+      alert(
+        "Browser Push is not available on this connection. Please access via http://localhost:3780."
+      );
       return;
     }
 
     try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        alert("Notification permission was not granted. Please allow notifications in Firefox site permissions.");
+        return;
+      }
+
       const registration = await navigator.serviceWorker.ready;
       const currentSub = await registration.pushManager.getSubscription();
 
@@ -121,6 +141,7 @@ export default function DashboardPage() {
 
         setPushSubscribed(true);
         setSubscribersCount((prev) => prev + 1);
+        alert("🎉 Web Push Notifications Enabled! You will receive desktop and mobile build alerts.");
       }
     } catch (err: unknown) {
       console.error("[Push Toggle Error]:", err);
