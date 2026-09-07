@@ -16,9 +16,9 @@ Built specifically for compiling **DuoplesOS 1.0** (Android 16 / LineageOS 23.0)
 ┌────────────────────────────────────────────────────────┐
 │        THE FULL-STACK NOTIFICATION ROM BUILDER         │
 ├───────────────────┬────────────────────────────────────┤
-│ Frontend          │ Next.js 15 (App Router) + Tailwind │
+│ Frontend (Port 3780) Next.js 15 (App Router) + Tailwind│
 ├───────────────────┼────────────────────────────────────┤
-│ Backend & DB      │ PocketBase (Auth, DB, Real-time)   │
+│ Backend (Port 8990) PocketBase (Auth, DB, Real-time)  │
 ├───────────────────┼────────────────────────────────────┤
 │ Notifications     │ Web Push (VAPID) + Gmail SMTP      │
 ├───────────────────┼────────────────────────────────────┤
@@ -36,58 +36,20 @@ Built specifically for compiling **DuoplesOS 1.0** (Android 16 / LineageOS 23.0)
 * **💻 Interactive Live Terminal Streamer:** Dark IDE terminal with real-time log scrolling, search filtering, error highlighting, full-screen mode, and log export.
 * **📊 Hardware Resource Monitor:** Real-time visibility into CPU allocation (8 Cores, -j6), 10 GB Physical RAM, 64 GB persistent Swapfile, and 50 GB Ccache.
 * **📦 Build Artifacts Archive:** History table of previous builds with duration stopwatch, zip package sizes, and SHA256 integrity checksums.
-* **🚀 Single-Command Orchestration:** `docker-compose.yml` to spin up both PocketBase and Next.js instantly.
-
----
-
-## 🚀 Quickstart
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Duoples/rom-builder-dashboard.git
-cd rom-builder-dashboard
-```
-
-### 2. Configure Environment Variables
-Copy `.env.example` to `.env.local`:
-```bash
-cp .env.example .env.local
-```
-
-Configure your notification settings:
-```env
-# Web Push VAPID Keys
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_public_vapid_key
-VAPID_PRIVATE_KEY=your_private_vapid_key
-VAPID_SUBJECT=mailto:your@email.com
-
-# Gmail SMTP Email Dispatch
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password
-NOTIFICATION_EMAIL_TO=recipient@gmail.com
-```
-
-### 3. Run Locally (Development)
-```bash
-npm install
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+* **🚀 Single-Command Orchestration:** `docker-compose.yml` configured on dedicated ports (`3780` for Frontend, `8990` for PocketBase) to prevent any conflicts with standard dev servers.
 
 ---
 
 ## 🐳 Docker Deployment
 
-To spin up the entire stack (Next.js + PocketBase) with persistent volume storage:
+To spin up the entire stack with a single command:
 
 ```bash
 docker compose up -d --build
 ```
 
-* **Frontend Dashboard:** [http://localhost:3000](http://localhost:3000)
-* **PocketBase Admin UI:** [http://localhost:8090/_/](http://localhost:8090/_/)
+* **Frontend Web Dashboard:** [http://localhost:3780](http://localhost:3780)
+* **PocketBase Admin UI:** [http://localhost:8990/_/](http://localhost:8990/_/)
 
 ---
 

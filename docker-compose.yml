@@ -1,19 +1,19 @@
 version: '3.8'
 
 services:
-  # The Core Backend & Embedded DB (PocketBase)
+  # The Core Backend & Embedded DB (PocketBase) on custom port 8990
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest
     container_name: rom-dashboard-backend
     restart: unless-stopped
     ports:
-      - "8090:8090"
+      - "8990:8090"
     volumes:
       - ./pb_data:/pb_data
     environment:
       - POCKETBASE_DATA_DIR=/pb_data
 
-  # Next.js Web Interface & Real-time Build Tracker
+  # Next.js Web Interface & Real-time Build Tracker on custom port 3780
   frontend:
     build:
       context: .
@@ -21,9 +21,9 @@ services:
     container_name: rom-dashboard-frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3780:3000"
     environment:
-      - NEXT_PUBLIC_PB_URL=http://localhost:8090
+      - NEXT_PUBLIC_PB_URL=http://localhost:8990
       - POCKETBASE_INTERNAL_URL=http://pocketbase:8090
       - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BPxSg3jF_STRDhIDP8Oz6Kz2KAWOGonH7grcQDUmnA6lT7rMOfCiYTpKm9SeQfXZKcqlXL5NvEojoxWnrAYj9cU
       - VAPID_PRIVATE_KEY=sUmWEs8T53JDpRU87Oq0SbS8r4NWRLYcvHrhtSRebg8

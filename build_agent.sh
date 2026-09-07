@@ -7,7 +7,7 @@
 set -o pipefail
 
 # Configuration
-DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:3000}"
+DASHBOARD_URL="${DASHBOARD_URL:-http://192.168.2.90:3780}"
 BUILD_ROOT="${BUILD_ROOT:-/home/duoplesos_build}"
 TARGET_DEVICE="${TARGET_DEVICE:-violet}"
 TARGET_DEVICE_NAME="${TARGET_DEVICE_NAME:-Xiaomi Redmi Note 7 Pro}"
