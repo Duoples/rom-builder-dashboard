@@ -8,7 +8,7 @@
 
 A real-time CI/CD Android & LineageOS ROM compilation tracking dashboard with native **Web Push Notifications**, **Gmail SMTP Email Routing**, **Live Terminal Streaming**, and **PocketBase** backend integration.
 
-Built specifically for compiling **DuoplesOS 1.0** (Android 16 / LineageOS 23.0) on the **Xiaomi Redmi Note 7 Pro (`violet`)** and scalable to any AOSP target device.
+Built for compiling **DuoplesOS 1.0** (Android 16 / LineageOS 23.0) on the **Xiaomi Redmi Note 7 Pro (`violet`)** and adaptable to any custom ROM (AOSP, LineageOS, PixelExperience, CrDroid) and device target on your own hardware or virtual machines.
 
 ---
 
@@ -22,7 +22,7 @@ Built specifically for compiling **DuoplesOS 1.0** (Android 16 / LineageOS 23.0)
 ├───────────────────┼────────────────────────────────────┤
 │ Notifications     │ Web Push (VAPID) + Gmail SMTP      │
 ├───────────────────┼────────────────────────────────────┤
-│ Build Agent       │ Bash Hook Script + cURL Webhooks   │
+│ Build Agent       │ Python Bridge + Bash Hooks + cURL  │
 └───────────────────┴────────────────────────────────────┘
 ```
 
@@ -36,14 +36,67 @@ Built specifically for compiling **DuoplesOS 1.0** (Android 16 / LineageOS 23.0)
 * **💻 Interactive Live Terminal Streamer:** Dark IDE terminal with real-time log scrolling, search filtering, error highlighting, full-screen mode, and log export.
 * **📊 Hardware Resource Monitor:** Real-time visibility into CPU allocation (8 Cores, -j6), 10 GB Physical RAM, 64 GB persistent Swapfile, and 50 GB Ccache.
 * **📦 Build Artifacts Archive:** History table of previous builds with duration stopwatch, zip package sizes, and SHA256 integrity checksums.
-* **🚀 Single-Command Orchestration:** `docker-compose.yml` configured on dedicated ports (`3780` for Frontend, `8990` for PocketBase) to prevent any conflicts with standard dev servers.
+* **🚀 Standalone & Multi-Host Architecture:** The dashboard runs on your host machine while your build compiles on a dedicated VM or server without UI freezes.
 
 ---
 
-## 🐳 Docker Deployment
+## 📂 Repository Structure
 
-To spin up the entire stack with a single command:
+```text
+├── agent/                         # Build Agent & VM Tools
+│   ├── build_agent.sh             # Full automated build script with webhook hooks
+│   ├── log_bridge.py              # Background daemon streaming build.log to dashboard
+│   └── setup_vm_host.sh           # Automated 1-click VM setup (ARM64 Rosetta / Swap / Multiarch)
+├── src/                           # Next.js 15 App Router Frontend & API
+│   ├── app/
+│   │   ├── api/                   # Webhook & Notification endpoints
+│   │   │   ├── build-event/       # Lifecycle status changes
+│   │   │   ├── build-log/         # Real-time log chunks
+│   │   │   ├── status/            # Health & hardware metrics
+│   │   │   └── notifications/     # Web Push & SMTP test routes
+│   │   ├── page.tsx               # Main Dashboard Page
+│   │   └── layout.tsx             # Root layout with PWA / Service Worker
+│   └── components/                # Modular Dashboard UI components
+├── public/
+│   ├── sw.js                      # Web Push Service Worker
+│   └── manifest.json              # Web App Manifest
+├── Dockerfile                     # Next.js standalone container
+├── docker-compose.yml             # Single-command stack (Frontend + PocketBase)
+└── README.md
+```
 
+---
+
+## 🚀 Quickstart: Running the Dashboard
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Duoples/rom-builder-dashboard.git
+cd rom-builder-dashboard
+```
+
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+Configure your notification settings:
+```env
+# Web Push VAPID Keys
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_public_vapid_key
+VAPID_PRIVATE_KEY=your_private_vapid_key
+VAPID_SUBJECT=mailto:your@email.com
+
+# Gmail SMTP Email Dispatch
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_gmail_app_password
+NOTIFICATION_EMAIL_TO=recipient@gmail.com
+```
+
+### 3. Spin Up with Docker
 ```bash
 docker compose up -d --build
 ```
@@ -53,16 +106,34 @@ docker compose up -d --build
 
 ---
 
-## 🛠️ Build Agent Hook Integration (`build_agent.sh`)
+## 🛠️ Setting Up Your Build Machine / VM (`agent/`)
 
-In your build server or VM (`/home/duoplesos_build/`), run the automated build agent to stream logs and fire webhooks:
+If you are compiling custom ROMs on an **Ubuntu VM (Apple Silicon M1/M2/M3/M4 or x86_64)**, we have included automated setup and bridge tools:
 
+### 1. One-Click Environment Setup
+Run `setup_vm_host.sh` on your build machine as root:
 ```bash
-chmod +x build_agent.sh
-./build_agent.sh
+sudo ./agent/setup_vm_host.sh
 ```
+This automatically configures:
+- Essential compiler toolchains (`build-essential`, `ccache`, `bison`, `flex`, `openjdk-21`).
+- **64 GB Persistent Swapfile** to prevent Out-Of-Memory (OOM) compiler crashes.
+- **Apple Silicon Rosetta 2 / Multiarch execution** for ARM64 host builds running x86_64 prebuilts.
+- **50 GB Ccache** cache limits.
 
-### Webhook API Endpoints
+### 2. Connect Your Build to the Dashboard (`log_bridge.py`)
+Run the bridge daemon on your build VM in a detached screen session:
+```bash
+DASHBOARD_URL="http://<HOST_IP>:3780" screen -dmS log_bridge python3 agent/log_bridge.py
+```
+This automatically:
+- Tails `/home/duoplesos_build/build.log` and pipes logs into the dashboard in real time.
+- Detects compilation stages (`Soong Analysis` → `Ninja Compilation` → `Packaging`).
+- Automatically fires **Web Push** and **Email Alerts** on build completion or failure.
+
+---
+
+## 📡 Webhook API Endpoints
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
@@ -75,9 +146,8 @@ chmod +x build_agent.sh
 
 ---
 
-## 📱 Device Specifications
+## 📱 Supported Target Example: Xiaomi Redmi Note 7 Pro (`violet`)
 
-* **Target Device:** Xiaomi Redmi Note 7 Pro (`violet`)
 * **Chipset:** Qualcomm Snapdragon 675 (SM6150)
 * **Architecture:** `arm64` (Cortex-A55)
 * **Base Source:** LineageOS 23.0 (`lineage-23.0` / Android 16 Trunk / `BP2A.250805.005`)
