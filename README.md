@@ -131,6 +131,18 @@ This automatically:
 - Detects compilation stages (`Soong Analysis` → `Ninja Compilation` → `Packaging`).
 - Automatically fires **Web Push** and **Email Alerts** on build completion or failure.
 
+### 3. Crave.io Cloud Build Farm Integration (`crave_agent.sh` & `crave_log_bridge.py`)
+For building on Crave.io high-performance cloud clusters (32-96 vCPUs):
+* **Trigger Compliant Crave Build:**
+  ```bash
+  ./agent/crave_agent.sh
+  ```
+* **Run Cloud Log Streamer Daemon:**
+  ```bash
+  DASHBOARD_URL="http://<HOST_IP>:3780" python3 agent/crave_log_bridge.py &
+  ```
+Fully compliant with [FOSSonTop Crave Rules & Docs](https://fosson.top/crave/) (using `/opt/crave/resync.sh`, external queued execution, and public Git manifests).
+
 ---
 
 ## 📡 Webhook API Endpoints
