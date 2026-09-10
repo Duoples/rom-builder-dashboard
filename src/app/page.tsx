@@ -75,13 +75,15 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Check Web Push subscription on mount & scroll to top
+  // Check Web Push subscription on mount & enforce scroll to top
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if ("scrollRestoration" in history) {
-        history.scrollRestoration = "manual";
+      if ("history" in window && "scrollRestoration" in window.history) {
+        window.history.scrollRestoration = "manual";
       }
       window.scrollTo(0, 0);
+      setTimeout(() => window.scrollTo(0, 0), 100);
+
       if ("serviceWorker" in navigator && "PushManager" in window) {
         navigator.serviceWorker
           .register("/sw.js")
@@ -196,6 +198,7 @@ export default function DashboardPage() {
       {/* Top Header Navigation */}
       <Header
         systemStats={systemStats}
+        activeBuild={activeBuild}
         pbConnected={pbConnected}
         pushSubscribed={pushSubscribed}
         onTogglePush={handleTogglePush}

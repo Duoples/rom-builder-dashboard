@@ -11,11 +11,15 @@ import {
   Zap,
   CheckCircle2,
   AlertTriangle,
+  Cloud,
+  Layers,
+  ArrowUp,
 } from "lucide-react";
-import { SystemStats } from "@/lib/types";
+import { SystemStats, BuildRecord } from "@/lib/types";
 
 interface HeaderProps {
   systemStats: SystemStats | null;
+  activeBuild: BuildRecord | null;
   pbConnected: boolean;
   pushSubscribed: boolean;
   onTogglePush: () => void;
@@ -27,6 +31,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   systemStats,
+  activeBuild,
   pbConnected,
   pushSubscribed,
   onTogglePush,
@@ -42,12 +47,19 @@ export const Header: React.FC<HeaderProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const isCrave = activeBuild?.environment === "crave";
+  const progressPct = activeBuild?.progress || 0;
+
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3.5">
+    <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3 relative backdrop-blur-xl">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Logo & ROM branding */}
         <div className="flex items-center gap-3.5 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={scrollToTop}>
             <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-indigo-600 to-purple-600 p-[2px] shadow-lg shadow-cyan-500/20">
               <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
                 <Zap className="w-5 h-5 text-cyan-400" />
@@ -60,6 +72,18 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
                   DuoplesOS <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Builder v1.0</span>
                 </h1>
+
+                {/* Header Live Progress Pill */}
+                {activeBuild && (
+                  <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700">
+                    <span className="text-xs font-mono font-bold text-cyan-400">
+                      {progressPct}%
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                      {activeBuild.stage.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                )}
               </div>
               <p className="text-xs text-slate-400">
                 Xiaomi Redmi Note 7 Pro (<span className="font-mono text-cyan-300">violet</span>) • LineageOS 23.0 Base
@@ -79,11 +103,28 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Status Indicators & Action Controls */}
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
-          {/* Server Host Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs font-mono text-slate-300">
-            <Server className="w-3.5 h-3.5 text-indigo-400" />
-            <span>{systemStats?.serverHost || "192.168.2.192"}</span>
-          </div>
+          {/* Active Build Environment Pill */}
+          {activeBuild && (
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold ${
+                isCrave
+                  ? "bg-sky-500/10 border-sky-500/30 text-sky-300"
+                  : "bg-indigo-500/10 border-indigo-500/30 text-indigo-300"
+              }`}
+            >
+              {isCrave ? (
+                <>
+                  <Cloud className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Crave Cloud {activeBuild.craveJobId ? `#${activeBuild.craveJobId}` : ""}</span>
+                </>
+              ) : (
+                <>
+                  <Server className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Self-Hosted VM</span>
+                </>
+              )}
+            </div>
+          )}
 
           {/* PocketBase status */}
           <div
@@ -146,10 +187,19 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
+      {/* Sticky Top Live Progress Bar (Always visible on all scroll positions) */}
+      {activeBuild && (
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-slate-800/60 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500 transition-all duration-700 ease-out shadow-sm shadow-cyan-500/50"
+            style={{ width: `${Math.max(3, progressPct)}%` }}
+          />
+        </div>
+      )}
+
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-slate-900/95 border border-cyan-500/40 text-cyan-300 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md text-xs animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-          <span>{toastMessage}</span>
+        <div className="absolute top-16 right-6 z-50 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white shadow-xl animate-in fade-in slide-in-from-top-2">
+          {toastMessage}
         </div>
       )}
     </header>
