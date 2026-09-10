@@ -20,6 +20,8 @@ export type BuildStage =
   | "completed"
   | "error";
 
+export type BuildTargetEnvironment = "crave" | "self_hosted";
+
 export interface BuildRecord {
   id: string;
   device: string;
@@ -32,6 +34,9 @@ export interface BuildRecord {
   progress: number;
   stageProgress?: number;
   cores: number;
+  environment: BuildTargetEnvironment;
+  craveJobId?: string;
+  craveUrl?: string;
   startTime: string;
   endTime?: string;
   duration?: string;
@@ -58,6 +63,9 @@ export interface BuildEventPayload {
   stageProgress?: number;
   message?: string;
   cores?: number;
+  environment?: BuildTargetEnvironment;
+  craveJobId?: string;
+  craveUrl?: string;
   artifact?: string;
   artifactSize?: string;
   artifactSha256?: string;

@@ -1,12 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Play, Smartphone, Cpu, GitBranch, Layers, CheckCircle2 } from "lucide-react";
+import { X, Play, Smartphone, Cpu, GitBranch, Cloud, Server, CheckCircle2, Zap } from "lucide-react";
+import { BuildTargetEnvironment } from "@/lib/types";
 
 interface BuildControlsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTriggerBuild: (params: { device: string; branch: string; cores: number }) => void;
+  onTriggerBuild: (params: {
+    device: string;
+    branch: string;
+    cores: number;
+    environment: BuildTargetEnvironment;
+  }) => void;
 }
 
 export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
@@ -14,6 +20,7 @@ export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
   onClose,
   onTriggerBuild,
 }) => {
+  const [environment, setEnvironment] = useState<BuildTargetEnvironment>("crave");
   const [device, setDevice] = useState("violet");
   const [branch, setBranch] = useState("lineage-23.0");
   const [cores, setCores] = useState(6);
@@ -24,7 +31,7 @@ export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsStarting(true);
-    onTriggerBuild({ device, branch, cores });
+    onTriggerBuild({ device, branch, cores, environment });
     setTimeout(() => {
       setIsStarting(false);
       onClose();
@@ -33,7 +40,7 @@ export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
-      <div className="w-full max-w-md glass-panel-glow rounded-2xl border border-slate-700/80 p-6 relative">
+      <div className="w-full max-w-lg glass-panel-glow rounded-2xl border border-slate-700/80 p-6 relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
@@ -47,11 +54,70 @@ export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
           </div>
           <div>
             <h3 className="text-base font-bold text-white">Start New ROM Build</h3>
-            <p className="text-xs text-slate-400">Configure target device and compilation flags</p>
+            <p className="text-xs text-slate-400">Choose compilation farm and target device</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Environment Selector: Crave vs Self-Hosted */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              Build Execution Environment
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Crave Option */}
+              <button
+                type="button"
+                onClick={() => setEnvironment("crave")}
+                className={`p-3 rounded-xl border text-left transition-all relative ${
+                  environment === "crave"
+                    ? "bg-cyan-500/15 border-cyan-500 text-white shadow-lg shadow-cyan-500/15"
+                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Cloud className={`w-4 h-4 ${environment === "crave" ? "text-cyan-400" : "text-slate-400"}`} />
+                    <span className="text-xs font-bold text-white">Crave.io Cloud</span>
+                  </div>
+                  {environment === "crave" && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  32-96 Core High-Speed Cluster. Zero load on local machine.
+                </p>
+                <div className="mt-2 inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-800/50">
+                  LOS 23.2 Project #99
+                </div>
+              </button>
+
+              {/* Self-Hosted Option */}
+              <button
+                type="button"
+                onClick={() => setEnvironment("self_hosted")}
+                className={`p-3 rounded-xl border text-left transition-all relative ${
+                  environment === "self_hosted"
+                    ? "bg-indigo-500/15 border-indigo-500 text-white shadow-lg shadow-indigo-500/15"
+                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Server className={`w-4 h-4 ${environment === "self_hosted" ? "text-indigo-400" : "text-slate-400"}`} />
+                    <span className="text-xs font-bold text-white">Self-Hosted VM</span>
+                  </div>
+                  {environment === "self_hosted" && <CheckCircle2 className="w-4 h-4 text-indigo-400" />}
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Local Ubuntu Server ARM VM (UTM / Apple Silicon).
+                </p>
+                <div className="mt-2 inline-block px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-950/80 text-indigo-300 border border-indigo-800/50">
+                  192.168.2.192
+                </div>
+              </button>
+            </div>
+          </div>
+
           {/* Target Device */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
@@ -86,32 +152,41 @@ export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
             </select>
           </div>
 
-          {/* Parallel Cores */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-purple-400" />
-              Parallel Compilation Jobs
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[6, 7, 8].map((c) => (
-                <button
-                  type="button"
-                  key={c}
-                  onClick={() => setCores(c)}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                    cores === c
-                      ? "bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-md shadow-cyan-500/10"
-                      : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  -j{c} {c === 6 ? "(Optimal)" : ""}
-                </button>
-              ))}
+          {/* Cores configuration (only for Self-Hosted) */}
+          {environment === "self_hosted" ? (
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-purple-400" />
+                Local Parallel Compilation Jobs
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[6, 7, 8].map((c) => (
+                  <button
+                    type="button"
+                    key={c}
+                    onClick={() => setCores(c)}
+                    className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
+                      cores === c
+                        ? "bg-indigo-500/20 border-indigo-500 text-indigo-300 shadow-md shadow-indigo-500/10"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    -j{c} {c === 6 ? "(Optimal)" : ""}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1.5">
+                -j6 leaves 2 cores free on the VM for SSH and file I/O responsiveness.
+              </p>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1.5">
-              -j6 leaves 2 CPU cores free to keep SSH and UI completely smooth.
-            </p>
-          </div>
+          ) : (
+            <div className="p-3 bg-cyan-950/20 border border-cyan-800/40 rounded-xl flex items-center gap-3">
+              <Cloud className="w-5 h-5 text-cyan-400 shrink-0" />
+              <p className="text-[11px] text-cyan-200">
+                Crave automatically provisions a dedicated multi-core build node (typically 32 cores, 128 GB RAM) with pre-synced Ceph/ZFS snapshots.
+              </p>
+            </div>
+          )}
 
           <div className="pt-3 flex items-center justify-end gap-2.5">
             <button
@@ -127,7 +202,13 @@ export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
               className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-cyan-600/25 transition-all disabled:opacity-50"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span>{isStarting ? "Starting Build..." : "Start Compilation"}</span>
+              <span>
+                {isStarting
+                  ? "Triggering..."
+                  : environment === "crave"
+                  ? "Dispatch to Crave Cloud"
+                  : "Start Local Build"}
+              </span>
             </button>
           </div>
         </form>

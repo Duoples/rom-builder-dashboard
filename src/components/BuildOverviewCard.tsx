@@ -13,6 +13,9 @@ import {
   FolderArchive,
   Hash,
   Play,
+  Cloud,
+  Server,
+  ExternalLink,
 } from "lucide-react";
 import { BuildRecord } from "@/lib/types";
 
@@ -91,6 +94,19 @@ export const BuildOverviewCard: React.FC<BuildOverviewCardProps> = ({
         {/* Left: Device & Target Summary */}
         <div className="space-y-3 max-w-xl">
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Environment Badge */}
+            {build?.environment === "crave" ? (
+              <span className="px-3 py-1 rounded-full text-xs font-bold border tracking-wider flex items-center gap-1.5 bg-sky-500/15 text-sky-300 border-sky-500/40 shadow-sm shadow-sky-500/10">
+                <Cloud className="w-3.5 h-3.5 text-sky-400" />
+                CRAVE.IO CLOUD
+              </span>
+            ) : (
+              <span className="px-3 py-1 rounded-full text-xs font-bold border tracking-wider flex items-center gap-1.5 bg-indigo-500/15 text-indigo-300 border-indigo-500/40 shadow-sm shadow-indigo-500/10">
+                <Server className="w-3.5 h-3.5 text-indigo-400" />
+                SELF-HOSTED VM
+              </span>
+            )}
+
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold border tracking-wider flex items-center gap-1.5 ${statusBadge.color}`}
             >
@@ -100,13 +116,25 @@ export const BuildOverviewCard: React.FC<BuildOverviewCardProps> = ({
               {statusBadge.label}
             </span>
 
-            <span className="text-xs font-mono text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-md border border-slate-800">
-              ID: {build?.id || "N/A"}
-            </span>
+            {build?.craveJobId ? (
+              <a
+                href={build.craveUrl || `https://foss.crave.io/app/#/build/info/${build.craveJobId}?team=14`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-mono text-sky-400 bg-sky-950/60 hover:bg-sky-900/60 px-2.5 py-1 rounded-md border border-sky-800/80 flex items-center gap-1 transition-all"
+              >
+                <span>Job #{build.craveJobId}</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            ) : (
+              <span className="text-xs font-mono text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-md border border-slate-800">
+                ID: {build?.id || "N/A"}
+              </span>
+            )}
 
             <span className="text-xs font-mono text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-md border border-slate-800 flex items-center gap-1">
               <Cpu className="w-3 h-3 text-cyan-400" />
-              {build?.cores || 6} Cores (Nice 10)
+              {build?.environment === "crave" ? "32 Cores (Cloud)" : `${build?.cores || 6} Cores (Local)`}
             </span>
           </div>
 

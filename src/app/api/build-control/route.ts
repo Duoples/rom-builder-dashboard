@@ -4,35 +4,44 @@ import { dispatchBuildNotification } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {
-    const { action, device = "violet", branch = "lineage-23.0", cores = 6 } = await req.json();
+    const {
+      action,
+      device = "violet",
+      branch = "lineage-23.0",
+      cores = 6,
+      environment = "crave",
+    } = await req.json();
 
     if (action === "start") {
+      const isCrave = environment === "crave";
       const newBuild = updateActiveBuild({
         id: `build_${device}_${Date.now()}`,
         device,
         deviceName: device === "violet" ? "Xiaomi Redmi Note 7 Pro" : device,
-        romName: "DuoplesOS 1.0",
+        romName: isCrave ? "DuoplesOS 1.0 (Crave.io)" : "DuoplesOS 1.0 (Self-Hosted)",
         version: "1.0-BP2A.250805.005",
         branch,
         status: "syncing",
         stage: "repo_sync",
-        progress: 5,
-        cores,
+        progress: isCrave ? 25 : 5,
+        cores: isCrave ? 32 : cores,
+        environment: isCrave ? "crave" : "self_hosted",
         startTime: new Date().toISOString(),
         endTime: undefined,
         duration: undefined,
         artifact: undefined,
         errorLog: undefined,
         warningsCount: 0,
-        triggeredBy: "Dashboard Web UI",
+        triggeredBy: isCrave ? "Web UI (Crave Cloud)" : "Web UI (Self-Hosted VM)",
       });
 
-      addLog(`[*] Build initiated from Web Dashboard (${device}, -j${cores})`, "info", "repo_sync");
+      const envLabel = isCrave ? "Crave.io Cloud Cluster (32-96 Cores)" : `Self-Hosted Ubuntu VM (-j${cores})`;
+      addLog(`[*] Build initiated for ${device} on ${envLabel}`, "info", "repo_sync");
       dispatchBuildNotification(newBuild, "start").catch(console.error);
 
       return NextResponse.json({
         success: true,
-        message: `Build started for ${device}`,
+        message: `Build started on ${envLabel} for ${device}`,
         build: newBuild,
       });
     } else if (action === "cancel") {

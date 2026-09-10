@@ -173,7 +173,12 @@ export default function DashboardPage() {
     }
   };
 
-  const handleTriggerBuild = async (params: { device: string; branch: string; cores: number }) => {
+  const handleTriggerBuild = async (params: {
+    device: string;
+    branch: string;
+    cores: number;
+    environment: BuildRecord["environment"];
+  }) => {
     try {
       await fetch("/api/build-control", {
         method: "POST",
