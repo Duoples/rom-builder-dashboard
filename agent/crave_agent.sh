@@ -9,7 +9,7 @@ set -e
 WORKSPACE="/home/crave_workspace"
 CRAVE="/home/crave"
 CONFIG="/home/crave.conf"
-PROJECT_ID="99" # LOS 23.2 (LineageOS 23 / Android 16)
+PROJECT_ID="99" # LOS 23.2 (LineageOS 23.2 / Android 16/17 Trunk)
 
 echo "=================================================="
 echo " Launching DuoplesOS Build on Crave.io Cloud Farm"
@@ -41,6 +41,9 @@ echo "[*] Triggering detached Crave build (Job will run on cloud cluster)..."
 $CRAVE -n -c "$CONFIG" run --projectID "$PROJECT_ID" --no-patch --detached -- \
 "rm -rf .repo/local_manifests /tmp/custom; \
 mkdir -p .repo/local_manifests /tmp/custom; \
+repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs; \
+git -C prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 checkout -f 2>/dev/null || true; \
+git -C prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9 checkout -f 2>/dev/null || true; \
 curl -sL -A 'Mozilla/5.0' https://github.com/Duoples/duoplesos-rom/archive/refs/heads/master.tar.gz -o /tmp/rom.tar.gz && tar -xzf /tmp/rom.tar.gz -C /tmp/custom --strip-components=1; \
 cp -r /tmp/custom/manifests/* .repo/local_manifests/; \
 /opt/crave/resync.sh; \
@@ -48,7 +51,7 @@ mkdir -p vendor/duoples device/xiaomi/violet; \
 cp -r /tmp/custom/vendor/duoples/* vendor/duoples/ 2>/dev/null || true; \
 cp -r /tmp/custom/device_violet_patches/* device/xiaomi/violet/ 2>/dev/null || true; \
 source build/envsetup.sh; \
-lunch duoples_violet-bp2a-userdebug; \
+lunch duoples_violet-bp4a-userdebug || lunch duoples_violet-trunk_staging-userdebug || lunch duoples_violet-userdebug; \
 m bacon"
 
 echo "[+] Build submitted successfully! Check status with: crave list"
