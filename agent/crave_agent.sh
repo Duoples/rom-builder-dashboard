@@ -2,19 +2,19 @@
 set -e
 
 # ==============================================================================
-# DuoplesOS Crave.io Automated Cloud Build Trigger
+# DuoplesOS Crave.io Automated Cloud Build Trigger (Clean Snapshot)
 # Fully compliant with FOSSonTop Crave Documentation & Rules
 # ==============================================================================
 
 WORKSPACE="/home/crave_workspace"
 CRAVE="/home/crave"
 CONFIG="/home/crave.conf"
-PROJECT_ID="99" # LOS 23.2 (LineageOS 23.2 / Android 16/17 Trunk)
+PROJECT_ID="99" # LOS 23.2 (LineageOS 23.2 / Android 16/17 Trunk Base)
 
 echo "=================================================="
-echo " Launching DuoplesOS Build on Crave.io Cloud Farm"
+echo " Launching DuoplesOS Clean Build on Crave.io"
 echo " Target: Redmi Note 7 Pro (duoples_violet)"
-echo " Project: LOS 23.2 (Base ID: ${PROJECT_ID})"
+echo " Base Project: LOS 23.2 (ID: ${PROJECT_ID})"
 echo "=================================================="
 
 # Check Crave CLI
@@ -37,13 +37,10 @@ LOS 23.2:
   ignoreClientHostname: true
 EOF
 
-echo "[*] Triggering detached Crave build (Job will run on cloud cluster)..."
-$CRAVE -n -c "$CONFIG" run --projectID "$PROJECT_ID" --no-patch --detached -- \
+echo "[*] Triggering clean detached Crave build to wipe dirty tree artifacts..."
+$CRAVE -n -c "$CONFIG" run --projectID "$PROJECT_ID" --clean --no-patch --detached -- \
 "rm -rf .repo/local_manifests /tmp/custom; \
 mkdir -p .repo/local_manifests /tmp/custom; \
-repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs; \
-git -C prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 checkout -f 2>/dev/null || true; \
-git -C prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9 checkout -f 2>/dev/null || true; \
 curl -sL -A 'Mozilla/5.0' https://github.com/Duoples/duoplesos-rom/archive/refs/heads/master.tar.gz -o /tmp/rom.tar.gz && tar -xzf /tmp/rom.tar.gz -C /tmp/custom --strip-components=1; \
 cp -r /tmp/custom/manifests/* .repo/local_manifests/; \
 /opt/crave/resync.sh; \
