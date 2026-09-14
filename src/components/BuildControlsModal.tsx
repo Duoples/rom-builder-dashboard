@@ -7,31 +7,48 @@ import { BuildTargetEnvironment } from "@/lib/types";
 interface BuildControlsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialSystemType?: "android_rom" | "custom_linux";
   onTriggerBuild: (params: {
     device: string;
     branch: string;
     cores: number;
     environment: BuildTargetEnvironment;
+    systemType?: "android_rom" | "custom_linux";
   }) => void;
 }
 
 export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
   isOpen,
   onClose,
+  initialSystemType = "android_rom",
   onTriggerBuild,
 }) => {
-  const [environment, setEnvironment] = useState<BuildTargetEnvironment>("crave");
-  const [device, setDevice] = useState("violet");
-  const [branch, setBranch] = useState("lineage-23.0");
+  const [systemType, setSystemType] = useState<"android_rom" | "custom_linux">(initialSystemType);
+  const [environment, setEnvironment] = useState<BuildTargetEnvironment>(
+    initialSystemType === "custom_linux" ? "self_hosted" : "crave"
+  );
+  const [device, setDevice] = useState(initialSystemType === "custom_linux" ? "generic_arm64" : "lavender");
+  const [branch, setBranch] = useState("lineage-23.2");
   const [cores, setCores] = useState(6);
   const [isStarting, setIsStarting] = useState(false);
+
+  React.useEffect(() => {
+    setSystemType(initialSystemType);
+    if (initialSystemType === "custom_linux") {
+      setEnvironment("self_hosted");
+      setDevice("generic_arm64");
+    } else {
+      setEnvironment("crave");
+      setDevice("lavender");
+    }
+  }, [initialSystemType]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsStarting(true);
-    onTriggerBuild({ device, branch, cores, environment });
+    onTriggerBuild({ device, branch, cores, environment, systemType });
     setTimeout(() => {
       setIsStarting(false);
       onClose();
@@ -122,16 +139,18 @@ export const BuildControlsModal: React.FC<BuildControlsModalProps> = ({
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
               <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
-              Target Device Codename
+              Target Codename / Architecture
             </label>
             <select
               value={device}
               onChange={(e) => setDevice(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono"
             >
+              <option value="lavender">lavender (Xiaomi Redmi Note 7 / 7S - SDM660)</option>
               <option value="violet">violet (Xiaomi Redmi Note 7 Pro - SM6150)</option>
               <option value="marble">marble (Xiaomi POCO F5)</option>
-              <option value="generic">generic_arm64 (AOSP GSI)</option>
+              <option value="generic_arm64">generic_arm64 (Duoples Linux / AOSP GSI)</option>
+              <option value="x86_64">x86_64 (Duoples Linux x86 Cloud)</option>
             </select>
           </div>
 

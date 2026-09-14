@@ -5,6 +5,8 @@ declare global {
   // eslint-disable-next-line no-var
   var __duoples_build_store: {
     activeBuild: BuildRecord | null;
+    activeAndroidBuild: BuildRecord | null;
+    activeLinuxBuild: BuildRecord | null;
     buildsHistory: BuildRecord[];
     logs: LogEntry[];
     subscriptions: PushSubscriptionItem[];
@@ -23,7 +25,7 @@ const defaultStats: SystemStats = {
   swapTotalMB: 65536,
   swapUsedMB: 28,
   diskTotalGB: 500,
-  diskFreeGB: 373,
+  diskFreeGB: 396,
   ccacheSizeGB: 0,
   ccacheMaxGB: 50,
   loadAverage: "6.50, 7.20, 8.05",
@@ -31,21 +33,22 @@ const defaultStats: SystemStats = {
   serverHost: process.env.BUILD_SERVER_HOST || "192.168.2.192",
 };
 
-const defaultActiveBuild: BuildRecord = {
-  id: "build_violet_" + new Date().toISOString().split("T")[0].replace(/-/g, ""),
-  device: "violet",
-  deviceName: "Xiaomi Redmi Note 7 Pro",
-  romName: "DuoplesOS 1.0",
-  version: "1.0-BP2A.250805.005",
-  branch: "lineage-23.0",
+export const defaultAndroidBuild: BuildRecord = {
+  id: "build_lavender_299911",
+  systemType: "android_rom",
+  device: "lavender",
+  deviceName: "Xiaomi Redmi Note 7",
+  romName: "DuoplesOS 2.0 (Android 17)",
+  version: "2.0-BP4A-Android17",
+  branch: "lineage-23.2",
   status: "compiling",
   stage: "repo_sync",
   progress: 25,
-  stageProgress: 10,
+  stageProgress: 15,
   cores: 32,
   environment: "crave",
-  craveJobId: "299163",
-  craveUrl: "https://foss.crave.io/app/#/build/info/299163?team=14",
+  craveJobId: "299911",
+  craveUrl: "https://foss.crave.io/app/#/build/info/299911?team=14",
   startTime: new Date().toISOString(),
   warningsCount: 0,
   triggeredBy: "Duoples CI/CD",
@@ -53,12 +56,44 @@ const defaultActiveBuild: BuildRecord = {
   updatedAt: new Date().toISOString(),
 };
 
+export const defaultLinuxBuild: BuildRecord = {
+  id: "build_duoples_linux_1.0",
+  systemType: "custom_linux",
+  device: "generic_arm64",
+  deviceName: "Duoples Linux (ARM64)",
+  romName: "Duoples Linux 1.0 LTS",
+  version: "1.0-LTS",
+  branch: "main",
+  status: "success",
+  stage: "completed",
+  progress: 100,
+  cores: 8,
+  environment: "self_hosted",
+  startTime: new Date(Date.now() - 3600000).toISOString(),
+  endTime: new Date().toISOString(),
+  duration: "47m",
+  artifact: "duoples-linux-rootfs.tar.gz",
+  artifactSize: "195 MB",
+  artifactSha256: "38a8e7e17cb5c8a4eb4f9448f72a441e8e50bdf60ff7b0c8db7c4943f65ff1c3",
+  warningsCount: 0,
+  triggeredBy: "Self-Hosted VM",
+  createdAt: new Date(Date.now() - 3600000).toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
+const defaultActiveBuild: BuildRecord = defaultAndroidBuild;
+
 if (!global.__duoples_build_store) {
   global.__duoples_build_store = {
-    activeBuild: defaultActiveBuild,
+    activeBuild: defaultAndroidBuild,
+    activeAndroidBuild: defaultAndroidBuild,
+    activeLinuxBuild: defaultLinuxBuild,
     buildsHistory: [
+      defaultAndroidBuild,
+      defaultLinuxBuild,
       {
         id: "build_violet_pre1",
+        systemType: "android_rom",
         device: "violet",
         deviceName: "Xiaomi Redmi Note 7 Pro",
         romName: "DuoplesOS 1.0",
@@ -174,10 +209,18 @@ export function addLog(text: string, level: LogEntry["level"] = "info", stage?: 
 }
 
 export function updateActiveBuild(partial: Partial<BuildRecord>) {
+  const isLinux =
+    partial.systemType === "custom_linux" ||
+    partial.device === "generic_arm64" ||
+    (partial.romName && partial.romName.toLowerCase().includes("linux"));
+
+  const targetSystemType = isLinux ? "custom_linux" : "android_rom";
+
   if (!store.activeBuild) {
     store.activeBuild = {
-      ...defaultActiveBuild,
+      ...(isLinux ? defaultLinuxBuild : defaultAndroidBuild),
       ...partial,
+      systemType: targetSystemType,
       id: partial.id || `build_${Date.now()}`,
       updatedAt: new Date().toISOString(),
     };
@@ -185,8 +228,16 @@ export function updateActiveBuild(partial: Partial<BuildRecord>) {
     store.activeBuild = {
       ...store.activeBuild,
       ...partial,
+      systemType: targetSystemType,
       updatedAt: new Date().toISOString(),
     };
+  }
+
+  // Update specific target track
+  if (isLinux) {
+    store.activeLinuxBuild = { ...store.activeBuild };
+  } else {
+    store.activeAndroidBuild = { ...store.activeBuild };
   }
 
   // Update in history if exists

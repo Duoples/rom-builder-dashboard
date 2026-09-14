@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { store } from "@/lib/store";
+import { store, defaultAndroidBuild, defaultLinuxBuild } from "@/lib/store";
 import { checkPocketBaseConnection } from "@/lib/pocketbase";
 
 export async function GET() {
@@ -7,6 +7,9 @@ export async function GET() {
 
   return NextResponse.json({
     activeBuild: store.activeBuild,
+    activeAndroidBuild: store.activeAndroidBuild || defaultAndroidBuild,
+    activeLinuxBuild: store.activeLinuxBuild || defaultLinuxBuild,
+    buildsHistory: store.buildsHistory,
     systemStats: store.systemStats,
     subscribersCount: store.subscriptions.length,
     pocketbaseConnected: pbConnected,

@@ -89,7 +89,16 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-400">
-                Xiaomi Redmi Note 7 Pro (<span className="font-mono text-cyan-300">violet</span>) • LineageOS 23.0 Base
+                {activeBuild?.systemType === "custom_linux" ? (
+                  <>
+                    <span className="text-white font-medium">Duoples Linux 1.0 LTS</span> • Debian/Ubuntu Compatible • Linux 6.6 LTS
+                  </>
+                ) : (
+                  <>
+                    <span className="text-white font-medium">{activeBuild?.deviceName || "Xiaomi Redmi Note 7"}</span> (
+                    <span className="font-mono text-cyan-300">{activeBuild?.device || "lavender"}</span>) • {activeBuild?.branch || "lineage-23.2"} Base
+                  </>
+                )}
               </p>
             </div>
           </div>

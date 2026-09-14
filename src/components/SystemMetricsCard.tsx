@@ -6,10 +6,15 @@ import { SystemStats } from "@/lib/types";
 
 interface SystemMetricsCardProps {
   stats: SystemStats | null;
+  targetEnv?: "crave" | "self_hosted";
 }
 
-export const SystemMetricsCard: React.FC<SystemMetricsCardProps> = ({ stats }) => {
-  const [viewEnv, setViewEnv] = useState<"crave" | "self_hosted">("crave");
+export const SystemMetricsCard: React.FC<SystemMetricsCardProps> = ({ stats, targetEnv }) => {
+  const [viewEnv, setViewEnv] = useState<"crave" | "self_hosted">(targetEnv || "crave");
+
+  React.useEffect(() => {
+    if (targetEnv) setViewEnv(targetEnv);
+  }, [targetEnv]);
 
   const ramPercent = stats
     ? Math.round((stats.usedMemoryMB / stats.totalMemoryMB) * 100)

@@ -27,6 +27,8 @@ function urlBase64ToUint8Array(base64String: string) {
 
 export default function DashboardPage() {
   const [activeBuild, setActiveBuild] = useState<BuildRecord | null>(null);
+  const [activeAndroidBuild, setActiveAndroidBuild] = useState<BuildRecord | null>(null);
+  const [activeLinuxBuild, setActiveLinuxBuild] = useState<BuildRecord | null>(null);
   const [history, setHistory] = useState<BuildRecord[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
@@ -53,6 +55,8 @@ export default function DashboardPage() {
 
       if (statusRes) {
         if (statusRes.activeBuild) setActiveBuild(statusRes.activeBuild);
+        if (statusRes.activeAndroidBuild) setActiveAndroidBuild(statusRes.activeAndroidBuild);
+        if (statusRes.activeLinuxBuild) setActiveLinuxBuild(statusRes.activeLinuxBuild);
         if (statusRes.systemStats) setSystemStats(statusRes.systemStats);
         setPbConnected(statusRes.pocketbaseConnected ?? false);
         setSubscribersCount(statusRes.subscribersCount ?? 0);
@@ -224,12 +228,60 @@ export default function DashboardPage() {
     }
   };
 
+  const displayedBuild =
+    systemFilter === "android"
+      ? activeAndroidBuild || activeBuild
+      : systemFilter === "linux"
+      ? activeLinuxBuild || activeBuild
+      : activeBuild;
+
+  const filteredHistory = history.filter((b) => {
+    if (systemFilter === "android") {
+      return (
+        b.systemType === "android_rom" ||
+        b.device === "violet" ||
+        b.device === "lavender" ||
+        (b.romName && !b.romName.toLowerCase().includes("linux"))
+      );
+    }
+    if (systemFilter === "linux") {
+      return (
+        b.systemType === "custom_linux" ||
+        b.device === "generic_arm64" ||
+        (b.romName && b.romName.toLowerCase().includes("linux"))
+      );
+    }
+    return true;
+  });
+
+  const filteredLogs = logs.filter((log) => {
+    const txt = log.text.toLowerCase();
+    if (systemFilter === "android") {
+      return (
+        !txt.includes("debootstrap") &&
+        !txt.includes("duoples-linux-rootfs") &&
+        !txt.includes("duoples linux 1.0")
+      );
+    }
+    if (systemFilter === "linux") {
+      return (
+        txt.includes("linux") ||
+        txt.includes("debootstrap") ||
+        txt.includes("kernel") ||
+        txt.includes("rootfs") ||
+        txt.includes("busybox") ||
+        txt.includes("apt")
+      );
+    }
+    return true;
+  });
+
   return (
     <div className="min-h-screen flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
       {/* Top Header Navigation */}
       <Header
         systemStats={systemStats}
-        activeBuild={activeBuild}
+        activeBuild={displayedBuild}
         pbConnected={pbConnected}
         pushSubscribed={pushSubscribed}
         onTogglePush={handleTogglePush}
@@ -291,33 +343,44 @@ export default function DashboardPage() {
 
         {/* 1. Build Overview Hero Card */}
         <BuildOverviewCard
-          build={activeBuild}
+          build={displayedBuild}
           onCancelBuild={handleCancelBuild}
           onOpenBuildModal={() => setIsBuildModalOpen(true)}
         />
 
         {/* 2. Pipeline Stages Progress Bar */}
         <StagePipeline
-          currentStage={activeBuild?.stage || "idle"}
-          status={activeBuild?.status || "idle"}
-          progress={activeBuild?.progress || 0}
+          currentStage={displayedBuild?.stage || "idle"}
+          status={displayedBuild?.status || "idle"}
+          progress={displayedBuild?.progress || 0}
         />
 
         {/* 3. System Hardware Metrics */}
-        <SystemMetricsCard stats={systemStats} />
+        <SystemMetricsCard
+          stats={systemStats}
+          targetEnv={
+            displayedBuild?.environment ||
+            (systemFilter === "android" ? "crave" : "self_hosted")
+          }
+        />
 
         {/* 4. Live Log Terminal Streamer */}
-        <LiveTerminal logs={logs} onClearLogs={handleClearLogs} />
+        <LiveTerminal logs={filteredLogs} onClearLogs={handleClearLogs} />
 
         {/* 5. Historical Builds Archive Table */}
-        <BuildHistoryTable history={history} />
+        <BuildHistoryTable history={filteredHistory} />
       </main>
 
       {/* Footer */}
       <footer className="w-full border-t border-slate-800/80 py-6 px-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            DuoplesOS Build System • Target: <strong>Xiaomi Redmi Note 7 Pro (violet)</strong>
+            Duoples Multi-System Build Engine •{" "}
+            <strong>
+              {systemFilter === "linux"
+                ? "Duoples Linux (ARM64 / x86_64)"
+                : "DuoplesOS Android 17 (Redmi Note 7 lavender)"}
+            </strong>
           </span>
           <span className="font-mono text-slate-400">
             Powered by Next.js 15, PocketBase, Web Push & Gmail SMTP
@@ -335,6 +398,7 @@ export default function DashboardPage() {
 
       <BuildControlsModal
         isOpen={isBuildModalOpen}
+        initialSystemType={systemFilter === "linux" ? "custom_linux" : "android_rom"}
         onClose={() => setIsBuildModalOpen(false)}
         onTriggerBuild={handleTriggerBuild}
       />

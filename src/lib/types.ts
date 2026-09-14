@@ -21,9 +21,11 @@ export type BuildStage =
   | "error";
 
 export type BuildTargetEnvironment = "crave" | "self_hosted";
+export type SystemType = "android_rom" | "custom_linux";
 
 export interface BuildRecord {
   id: string;
+  systemType?: SystemType;
   device: string;
   deviceName: string;
   romName: string;
@@ -52,6 +54,7 @@ export interface BuildRecord {
 
 export interface BuildEventPayload {
   buildId?: string;
+  systemType?: SystemType;
   device?: string;
   deviceName?: string;
   romName?: string;
