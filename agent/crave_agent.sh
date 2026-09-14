@@ -37,9 +37,9 @@ LOS 23.2:
   ignoreClientHostname: true
 CRAVE_YAML
 
-echo "[*] Triggering clean detached Crave build for lavender..."
-$CRAVE -n -c "$CONFIG" run --projectID "$PROJECT_ID" --clean --no-patch --detached -- \
-"rm -rf .repo/local_manifests /tmp/custom; \
+echo "[*] Triggering detached Crave build for lavender..."
+$CRAVE -n -c "$CONFIG" run --projectID "$PROJECT_ID" --no-patch --detached -- \
+"rm -rf .repo/local_manifests /tmp/custom prebuilts/rust-toolchain system/fs/fs_mgr packages/modules/WebApp system/lfi; \
 mkdir -p .repo/local_manifests /tmp/custom; \
 curl -sL -A 'Mozilla/5.0' https://github.com/Duoples/duoplesos-rom/archive/refs/heads/master.tar.gz -o /tmp/rom.tar.gz && tar -xzf /tmp/rom.tar.gz -C /tmp/custom --strip-components=1; \
 cp /tmp/custom/manifests/duoplesos_lavender.xml .repo/local_manifests/; \
