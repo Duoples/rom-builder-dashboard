@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-DuoplesOS Crave.io Real-Time Log Bridge Daemon
-Connects directly to Crave.io's WebSocket stdout stream using subprocess.Popen
-and streams compiler diagnostics line-by-line into the DuoplesOS Build Dashboard.
+DuoplesOS Crave.io High-Performance Log Bridge Daemon
+Polls Crave.io API, streams logs in efficient batches to the Next.js Dashboard,
+and captures stage transitions, live progress %, and build failure diagnostics.
 """
 
 import time
@@ -19,161 +19,198 @@ CRAVE_WORKSPACE = os.getenv("CRAVE_WORKSPACE", "/home/crave_workspace")
 
 def post_event(payload):
     try:
-        requests.post(f"{DASHBOARD_URL}/api/build-event", json=payload, timeout=5)
+        r = requests.post(f"{DASHBOARD_URL}/api/build-event", json=payload, timeout=5)
+        print(f"[Bridge] Event posted: {payload.get('status')} / {payload.get('stage')} -> {r.status_code}")
     except Exception as e:
-        print("[Event Error]:", e)
+        print("[Bridge Event Error]:", e)
 
-def post_log(text, level="stdout", stage="ninja_compilation"):
+def post_log_batch(lines, level="stdout", stage="ninja_compilation"):
+    if not lines:
+        return
     try:
+        # Join lines or send as batch
+        text_chunk = "\n".join(lines)
         requests.post(
             f"{DASHBOARD_URL}/api/build-log",
-            json={"text": text, "level": level, "stage": stage},
-            timeout=3
+            json={"text": text_chunk, "level": level, "stage": stage},
+            timeout=5
         )
-    except Exception:
-        pass
+    except Exception as e:
+        print("[Bridge Log Error]:", e)
 
-def get_active_job():
+def parse_crave_list():
+    """
+    Returns:
+      active_job: (id, status) or None
+      latest_history_job: (id, status) or None
+    """
     try:
         cmd = f"cd {CRAVE_WORKSPACE} && {CRAVE_BIN} -n -c {CRAVE_CONF} list 2>/dev/null"
         output = subprocess.check_output(cmd, shell=True, text=True, timeout=30)
+        
+        active_job = None
+        history_job = None
+
+        in_active = False
+        in_history = False
+
         for line in output.splitlines():
-            m = re.search(r'^\s*(\d+)\s+([^\s]+(?:\s+[^\s]+)?)\s+([a-zA-Z]+)\s+', line)
-            if m:
-                jid = m.group(1)
-                status = m.group(3).lower()
-                if status in ["queued", "running", "active"]:
-                    return jid, status
-    except Exception:
-        pass
-    return None, None
-
-def stream_logs_for_job(job_id):
-    cmd = [CRAVE_BIN, "-n", "-c", CRAVE_CONF, "getlog", "--jobID", job_id]
-    print(f"[*] Starting log stream process for Job {job_id}: {' '.join(cmd)}")
-
-    try:
-        proc = subprocess.Popen(
-            cmd,
-            cwd=CRAVE_WORKSPACE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1
-        )
-
-        for raw_line in iter(proc.stdout.readline, ''):
-            line = raw_line.strip()
-            if not line:
+            if "Your active jobs:" in line:
+                in_active = True
+                in_history = False
+                continue
+            elif "Job History:" in line:
+                in_active = False
+                in_history = True
                 continue
 
-            # Strip ANSI escape codes
-            clean_line = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', line)
+            # Check rows with IDs
+            m = re.search(r'^\s*(\d+)\s+([^\s]+(?:\s+[^\s]+)?)\s+([a-zA-Z]+)', line)
+            if m:
+                jid = m.group(1)
+                st = m.group(3).upper()
+                if in_active and not active_job:
+                    active_job = (jid, st.lower())
+                elif in_history and not history_job:
+                    history_job = (jid, st.upper())
 
-            # Detect Ninja progress %
-            match = re.search(r'\[\s*(\d+)%\s+(\d+)/(\d+)\]', clean_line)
-            if match:
-                pct = int(match.group(1))
-                overall = 40 + int(pct * 0.55)
-                post_event({
-                    "status": "compiling",
-                    "stage": "ninja_compilation",
-                    "progress": overall,
-                    "stageProgress": pct,
-                    "message": clean_line[:120]
-                })
-
-            # Detect stages
-            if "repo sync" in clean_line.lower() or "synchronizing" in clean_line.lower():
-                post_event({
-                    "status": "syncing",
-                    "stage": "repo_sync",
-                    "progress": 30,
-                    "message": clean_line[:120]
-                })
-            elif "Running product configuration" in clean_line:
-                post_event({
-                    "status": "configuring",
-                    "stage": "envsetup_lunch",
-                    "progress": 35,
-                    "message": "Product configuration (lunch duoples_violet) in progress..."
-                })
-            elif "analyzing Android.bp" in clean_line:
-                post_event({
-                    "status": "compiling",
-                    "stage": "soong_analysis",
-                    "progress": 38,
-                    "message": "Soong graph generation in progress..."
-                })
-
-            # Detect failures
-            if "failed to build some targets" in clean_line or "soong bootstrap failed" in clean_line or "dumpvars failed" in clean_line:
-                post_event({
-                    "status": "failed",
-                    "stage": "error",
-                    "progress": 0,
-                    "errorLog": clean_line,
-                    "message": "Compilation failed: " + clean_line[:120]
-                })
-                post_log(clean_line, "error", "error")
-
-            # Detect success
-            elif "DuoplesOS Build Completed Successfully" in clean_line or "Package Complete:" in clean_line or "#### build completed successfully" in clean_line:
-                post_event({
-                    "status": "success",
-                    "stage": "completed",
-                    "progress": 100,
-                    "message": "DuoplesOS 2.0 (Android 17) ROM built successfully on Crave.io!"
-                })
-                post_log(clean_line, "info", "completed")
-
-            else:
-                level = "error" if ("error:" in clean_line or "FAILED:" in clean_line) else "warn" if "warning:" in clean_line else "stdout"
-                post_log(clean_line, level, "ninja_compilation")
-
-        proc.stdout.close()
-        proc.wait()
+        return active_job, history_job
     except Exception as e:
-        print(f"[-] Log streaming error: {e}")
+        print("[parse_crave_list error]:", e)
+        return None, None
+
+def get_job_full_log(job_id):
+    try:
+        cmd = [CRAVE_BIN, "-n", "-c", CRAVE_CONF, "getlog", "--jobID", str(job_id)]
+        output = subprocess.check_output(cmd, cwd=CRAVE_WORKSPACE, stderr=subprocess.STDOUT, text=True, timeout=35)
+        return output
+    except Exception:
+        return ""
 
 def main():
-    print(f"[*] DuoplesOS Real-Time Crave Bridge Daemon started")
+    print("[*] DuoplesOS Crave Log Bridge Daemon v2.0 running...")
     print(f"[*] Dashboard Target: {DASHBOARD_URL}")
 
-    last_job_id = None
+    last_tracked_job = None
+    last_line_count = 0
+    last_status = None
 
     while True:
-        job_id, status = get_active_job()
+        try:
+            active_job, history_job = parse_crave_list()
+            target_job = active_job if active_job else history_job
 
-        if job_id:
-            if job_id != last_job_id:
-                last_job_id = job_id
-                print(f"[*] Discovered new active Crave Job: {job_id} ({status})")
-                post_event({
-                    "buildId": f"build_violet_{job_id}",
-                    "device": "violet",
-                    "deviceName": "Xiaomi Redmi Note 7 Pro",
-                    "romName": "DuoplesOS 2.0 (Android 17)",
-                    "version": "2.0-BP4A-Android17",
-                    "branch": "lineage-24.0",
-                    "status": "compiling",
-                    "stage": "repo_sync",
-                    "progress": 25,
-                    "cores": 32,
-                    "environment": "crave",
-                    "craveJobId": job_id,
-                    "craveUrl": f"https://foss.crave.io/app/#/build/info/{job_id}?team=14",
-                    "message": f"Crave.io Cloud Build #{job_id} active on cluster (LOS 24.0 / Android 17)"
-                })
+            if target_job:
+                job_id, status = target_job
 
-            # Stream logs directly
-            stream_logs_for_job(job_id)
-        else:
-            if last_job_id:
-                print(f"[*] Job {last_job_id} has concluded.")
-                last_job_id = None
+                # New job detected
+                if job_id != last_tracked_job:
+                    print(f"[*] Now tracking Crave Job: {job_id} (Status: {status})")
+                    last_tracked_job = job_id
+                    last_line_count = 0
+                    last_status = status
 
-        time.sleep(10)
+                    post_event({
+                        "buildId": f"build_violet_{job_id}",
+                        "device": "violet",
+                        "deviceName": "Xiaomi Redmi Note 7 Pro",
+                        "romName": "DuoplesOS 2.0 (Android 16/17)",
+                        "version": "2.0-BP4A",
+                        "branch": "lineage-23.2",
+                        "status": "compiling" if status in ["running", "queued"] else "failed" if status == "FAILED" else "success",
+                        "stage": "repo_sync",
+                        "progress": 25,
+                        "cores": 32,
+                        "environment": "crave",
+                        "craveJobId": str(job_id),
+                        "craveUrl": f"https://foss.crave.io/app/#/build/info/{job_id}?team=14",
+                        "message": f"Crave Cloud Job #{job_id} is {status.upper()}"
+                    })
+
+                # Fetch and sync logs
+                raw_logs = get_job_full_log(job_id)
+                if raw_logs:
+                    clean_text = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', raw_logs)
+                    all_lines = clean_text.splitlines()
+
+                    if len(all_lines) > last_line_count:
+                        new_lines = all_lines[last_line_count:]
+                        last_line_count = len(all_lines)
+
+                        # Parse progress and stage from new lines
+                        current_stage = "ninja_compilation"
+                        for line in new_lines:
+                            line_s = line.strip()
+                            if not line_s:
+                                continue
+
+                            # Detect Ninja %
+                            match = re.search(r'\[\s*(\d+)%\s+(\d+)/(\d+)\]', line_s)
+                            if match:
+                                pct = int(match.group(1))
+                                overall = 40 + int(pct * 0.55)
+                                post_event({
+                                    "status": "compiling",
+                                    "stage": "ninja_compilation",
+                                    "progress": overall,
+                                    "stageProgress": pct,
+                                    "message": line_s[:120]
+                                })
+                            elif "Running product configuration" in line_s or "lunch" in line_s:
+                                current_stage = "envsetup_lunch"
+                                post_event({
+                                    "status": "configuring",
+                                    "stage": "envsetup_lunch",
+                                    "progress": 35,
+                                    "message": line_s[:120]
+                                })
+                            elif "analyzing Android.bp" in line_s or "bootstrap blueprint" in line_s:
+                                current_stage = "soong_analysis"
+                                post_event({
+                                    "status": "compiling",
+                                    "stage": "soong_analysis",
+                                    "progress": 38,
+                                    "message": line_s[:120]
+                                })
+
+                        # Send new lines in batches of 50
+                        batch_size = 50
+                        for i in range(0, len(new_lines), batch_size):
+                            chunk = new_lines[i:i + batch_size]
+                            post_log_batch(chunk, "stdout", current_stage)
+
+                # Check if job transitioned to failure
+                if status == "FAILED" and last_status != "FAILED":
+                    last_status = "FAILED"
+                    # Find error message from tail of logs
+                    error_msg = "Crave compilation halted with errors."
+                    if raw_logs:
+                        for l in reversed(raw_logs.splitlines()):
+                            if "error:" in l or "FAILED:" in l or "Build Failed:" in l:
+                                error_msg = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', l).strip()
+                                break
+
+                    post_event({
+                        "status": "failed",
+                        "stage": "error",
+                        "progress": 0,
+                        "errorLog": error_msg,
+                        "message": f"Compilation failed on Crave.io: {error_msg[:120]}"
+                    })
+
+                elif status in ["SUCCESS", "COMPLETE"] and last_status not in ["SUCCESS", "COMPLETE"]:
+                    last_status = "SUCCESS"
+                    post_event({
+                        "status": "success",
+                        "stage": "completed",
+                        "progress": 100,
+                        "message": f"DuoplesOS ROM Build #{job_id} Completed Successfully!"
+                    })
+
+        except Exception as err:
+            print("[Daemon Loop Error]:", err)
+
+        time.sleep(8)
 
 if __name__ == "__main__":
     main()

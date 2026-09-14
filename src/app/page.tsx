@@ -9,7 +9,9 @@ import { LiveTerminal } from "@/components/LiveTerminal";
 import { BuildHistoryTable } from "@/components/BuildHistoryTable";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
 import { BuildControlsModal } from "@/components/BuildControlsModal";
-import { BuildRecord, LogEntry, SystemStats } from "@/lib/types";
+import { GettingStartedModal } from "@/components/GettingStartedModal";
+import { BuildRecord, LogEntry, SystemStats, BuildTargetEnvironment } from "@/lib/types";
+import { Smartphone, Server, Globe } from "lucide-react";
 
 // Helper to convert base64 VAPID key to Uint8Array for PushManager
 function urlBase64ToUint8Array(base64String: string) {
@@ -36,6 +38,8 @@ export default function DashboardPage() {
   // Modals
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isBuildModalOpen, setIsBuildModalOpen] = useState(false);
+  const [isGettingStartedOpen, setIsGettingStartedOpen] = useState(false);
+  const [systemFilter, setSystemFilter] = useState<"all" | "android" | "linux">("all");
 
   // Fetch all state
   const fetchData = useCallback(async () => {
@@ -193,6 +197,33 @@ export default function DashboardPage() {
     }
   };
 
+  const handleApplyConfig = async (config: {
+    systemType: "android_rom" | "custom_linux";
+    environment: BuildTargetEnvironment;
+    device: string;
+    serverHost: string;
+  }) => {
+    try {
+      const isRom = config.systemType === "android_rom";
+      await fetch("/api/build-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "start",
+          device: config.device,
+          environment: config.environment,
+          systemType: config.systemType,
+          romName: isRom ? `DuoplesOS 2.0 (${config.device})` : "Duoples Linux 1.0 LTS",
+          branch: isRom ? "lineage-23.2" : "main",
+          cores: config.environment === "crave" ? 32 : 8,
+        }),
+      });
+      fetchData();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950">
       {/* Top Header Navigation */}
@@ -204,12 +235,60 @@ export default function DashboardPage() {
         onTogglePush={handleTogglePush}
         onOpenEmailModal={() => setIsEmailModalOpen(true)}
         onOpenBuildModal={() => setIsBuildModalOpen(true)}
+        onOpenGettingStarted={() => setIsGettingStartedOpen(true)}
         onRefresh={fetchData}
         isRefreshing={isRefreshing}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+        {/* Dual-Target Filter Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
+          <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 p-1 rounded-xl">
+            <button
+              onClick={() => setSystemFilter("all")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                systemFilter === "all"
+                  ? "bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-md shadow-cyan-500/20"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>All Projects</span>
+            </button>
+            <button
+              onClick={() => setSystemFilter("android")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                systemFilter === "android"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-md shadow-cyan-500/10"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Android ROM (DuoplesOS)</span>
+            </button>
+            <button
+              onClick={() => setSystemFilter("linux")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                systemFilter === "linux"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-md shadow-purple-500/10"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Server className="w-3.5 h-3.5" />
+              <span>Duoples Linux Distro</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => setIsGettingStartedOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-400 transition-colors"
+          >
+            <span>Need help setting up your machine?</span>
+            <span className="text-cyan-400 font-semibold underline">Open Setup Guide ➔</span>
+          </button>
+        </div>
+
         {/* 1. Build Overview Hero Card */}
         <BuildOverviewCard
           build={activeBuild}
@@ -258,6 +337,12 @@ export default function DashboardPage() {
         isOpen={isBuildModalOpen}
         onClose={() => setIsBuildModalOpen(false)}
         onTriggerBuild={handleTriggerBuild}
+      />
+
+      <GettingStartedModal
+        isOpen={isGettingStartedOpen}
+        onClose={() => setIsGettingStartedOpen(false)}
+        onApplyConfig={handleApplyConfig}
       />
     </div>
   );

@@ -14,6 +14,7 @@ import {
   Cloud,
   Layers,
   ArrowUp,
+  Rocket,
 } from "lucide-react";
 import { SystemStats, BuildRecord } from "@/lib/types";
 
@@ -25,6 +26,7 @@ interface HeaderProps {
   onTogglePush: () => void;
   onOpenEmailModal: () => void;
   onOpenBuildModal: () => void;
+  onOpenGettingStarted: () => void;
   onRefresh: () => void;
   isRefreshing: boolean;
 }
@@ -37,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   onTogglePush,
   onOpenEmailModal,
   onOpenBuildModal,
+  onOpenGettingStarted,
   onRefresh,
   isRefreshing,
 }) => {
@@ -154,6 +157,17 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {pushSubscribed ? <Bell className="w-3.5 h-3.5 text-cyan-400" /> : <BellOff className="w-3.5 h-3.5" />}
             <span>{pushSubscribed ? "Push Alerts On" : "Enable Push"}</span>
+          </button>
+
+          {/* Getting Started Button */}
+          <button
+            onClick={onOpenGettingStarted}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold shadow-sm transition-all"
+            title="Interactive Setup & Environment Wizard"
+          >
+            <Rocket className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Getting Started</span>
+            <span className="sm:hidden">Setup</span>
           </button>
 
           {/* Email alerts button */}

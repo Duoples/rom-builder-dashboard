@@ -2,18 +2,18 @@
 set -e
 
 # ==============================================================================
-# DuoplesOS Crave.io Automated Cloud Build Trigger (Clean Snapshot)
+# DuoplesOS Crave.io Automated Cloud Build Trigger (Redmi Note 7 - lavender)
 # Fully compliant with FOSSonTop Crave Documentation & Rules
 # ==============================================================================
 
 WORKSPACE="/home/crave_workspace"
 CRAVE="/home/crave"
 CONFIG="/home/crave.conf"
-PROJECT_ID="99" # LOS 23.2 (LineageOS 23.2 / Android 16/17 Trunk Base)
+PROJECT_ID="99" # LOS 23.2 (LineageOS 23.2 / Android 16/17 Base)
 
 echo "=================================================="
-echo " Launching DuoplesOS Clean Build on Crave.io"
-echo " Target: Redmi Note 7 Pro (duoples_violet)"
+echo " Launching DuoplesOS 2.0 (Android 17) Build"
+echo " Target: Redmi Note 7 (duoples_lavender)"
 echo " Base Project: LOS 23.2 (ID: ${PROJECT_ID})"
 echo "=================================================="
 
@@ -32,23 +32,23 @@ mkdir -p "$WORKSPACE"
 cd "$WORKSPACE"
 
 # Ensure crave.yaml exists for workspace persistence
-cat << 'EOF' > "$WORKSPACE/crave.yaml"
+cat << 'CRAVE_YAML' > "$WORKSPACE/crave.yaml"
 LOS 23.2:
   ignoreClientHostname: true
-EOF
+CRAVE_YAML
 
-echo "[*] Triggering clean detached Crave build to wipe dirty tree artifacts..."
+echo "[*] Triggering clean detached Crave build for lavender..."
 $CRAVE -n -c "$CONFIG" run --projectID "$PROJECT_ID" --clean --no-patch --detached -- \
 "rm -rf .repo/local_manifests /tmp/custom; \
 mkdir -p .repo/local_manifests /tmp/custom; \
 curl -sL -A 'Mozilla/5.0' https://github.com/Duoples/duoplesos-rom/archive/refs/heads/master.tar.gz -o /tmp/rom.tar.gz && tar -xzf /tmp/rom.tar.gz -C /tmp/custom --strip-components=1; \
-cp -r /tmp/custom/manifests/* .repo/local_manifests/; \
+cp /tmp/custom/manifests/duoplesos_lavender.xml .repo/local_manifests/; \
 /opt/crave/resync.sh; \
-mkdir -p vendor/duoples device/xiaomi/violet; \
+mkdir -p vendor/duoples device/xiaomi/lavender; \
 cp -r /tmp/custom/vendor/duoples/* vendor/duoples/ 2>/dev/null || true; \
-cp -r /tmp/custom/device_violet_patches/* device/xiaomi/violet/ 2>/dev/null || true; \
+cp -r /tmp/custom/device_lavender_patches/* device/xiaomi/lavender/ 2>/dev/null || true; \
 source build/envsetup.sh; \
-lunch duoples_violet-bp4a-userdebug || lunch duoples_violet-trunk_staging-userdebug || lunch duoples_violet-userdebug; \
+lunch duoples_lavender-bp4a-userdebug || lunch duoples_lavender-trunk_staging-userdebug || lunch lineage_lavender-userdebug; \
 m bacon"
 
 echo "[+] Build submitted successfully! Check status with: crave list"
