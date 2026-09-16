@@ -39,11 +39,18 @@ CRAVE_YAML
 
 echo "[*] Triggering detached Crave build for lavender..."
 $CRAVE -n -c "$CONFIG" run --projectID "$PROJECT_ID" --no-patch --detached -- \
-"rm -rf .repo/local_manifests /tmp/custom prebuilts/rust-toolchain system/fs/fs_mgr packages/modules/WebApp system/lfi; \
+"rm -rf .repo/local_manifests /tmp/custom \
+        packages/apps/PersonalContext \
+        prebuilts/module_sdk/WebApp \
+        packages/modules/WebApp \
+        system/fs/fs_mgr \
+        system/lfi \
+        prebuilts/rust-toolchain; \
 mkdir -p .repo/local_manifests /tmp/custom; \
 curl -sL -A 'Mozilla/5.0' https://github.com/Duoples/duoplesos-rom/archive/refs/heads/master.tar.gz -o /tmp/rom.tar.gz && tar -xzf /tmp/rom.tar.gz -C /tmp/custom --strip-components=1; \
 cp /tmp/custom/manifests/duoplesos_lavender.xml .repo/local_manifests/; \
 /opt/crave/resync.sh; \
+rm -rf packages/apps/PersonalContext prebuilts/module_sdk/WebApp packages/modules/WebApp system/fs/fs_mgr system/lfi prebuilts/rust-toolchain; \
 mkdir -p vendor/duoples device/xiaomi/lavender; \
 cp -r /tmp/custom/vendor/duoples/* vendor/duoples/ 2>/dev/null || true; \
 cp -r /tmp/custom/device_lavender_patches/* device/xiaomi/lavender/ 2>/dev/null || true; \
