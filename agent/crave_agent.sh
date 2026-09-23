@@ -3,7 +3,7 @@ set -e
 
 # ==============================================================================
 # DuoplesOS Crave.io Full Compilation Trigger (Redmi Note 7 - lavender)
-# Uses /bin/bash execution with automated stray-directory pruning
+# Uses /bin/bash execution with reliable stray project cleaning
 # ==============================================================================
 
 WORKSPACE="/home/crave_workspace"
@@ -45,48 +45,32 @@ curl -sL -A \"Mozilla/5.0\" https://github.com/Duoples/duoplesos-rom/archive/ref
 cp /tmp/custom/manifests/duoplesos_lavender.xml .repo/local_manifests/
 /opt/crave/resync.sh
 
-echo \"[*] Pruning stray non-manifest directories from workspace...\"
-python3 -c \"
-import subprocess, os, shutil
-try:
-    res = subprocess.check_output([\x27repo\x27, \x27list\x27, \x27-p\x27], text=True)
-    valid_paths = set(line.strip() for line in res.splitlines() if line.strip())
-except Exception as e:
-    valid_paths = set()
-
-stray_dirs = [
-    \x27packages/modules/NpuManager\x27,
-    \x27packages/modules/WebApp\x27,
-    \x27packages/modules/GenericBootstrappingArchitecture\x27,
-    \x27packages/modules/ImsStack\x27,
-    \x27packages/modules/WebViewBootstrap\x27,
-    \x27packages/apps/PersonalContext\x27,
-    \x27packages/apps/Login\x27,
-    \x27packages/apps/VirtualGamepad\x27,
-    \x27prebuilts/module_sdk/NpuManager\x27,
-    \x27prebuilts/module_sdk/WebApp\x27,
-    \x27prebuilts/module_sdk/WebViewBootstrap\x27,
-    \x27prebuilts/rust-toolchain\x27,
-    \x27system/fs/fs_mgr\x27,
-    \x27system/lfi\x27,
-    \x27external/java-diff-utils\x27,
-    \x27external/pcollections\x27,
-    \x27external/failsafe\x27,
-    \x27external/jctools\x27,
-    \x27external/jipp\x27,
-    \x27external/jmustache\x27,
-    \x27external/lfi\x27,
-    \x27external/libburnia\x27,
-    \x27external/openxr-sdk\x27,
-    \x27hardware/qcom-caf/sm8850\x27,
-    \x27system/software_defined_vehicle\x27,
-]
-
-for d in stray_dirs:
-    if os.path.exists(d) and (not valid_paths or d not in valid_paths):
-        print(f\x27[-] Pruning stray: {d}\x27)
-        shutil.rmtree(d, ignore_errors=True)
-\"
+echo \"[*] Pruning stray non-manifest directories...\"
+rm -rf packages/modules/NpuManager \
+       packages/modules/WebApp \
+       packages/modules/GenericBootstrappingArchitecture \
+       packages/modules/ImsStack \
+       packages/modules/WebViewBootstrap \
+       packages/apps/PersonalContext \
+       packages/apps/Login \
+       packages/apps/VirtualGamepad \
+       prebuilts/module_sdk/NpuManager \
+       prebuilts/module_sdk/WebApp \
+       prebuilts/module_sdk/WebViewBootstrap \
+       prebuilts/rust-toolchain \
+       system/fs/fs_mgr \
+       system/lfi \
+       external/java-diff-utils \
+       external/pcollections \
+       external/failsafe \
+       external/jctools \
+       external/jipp \
+       external/jmustache \
+       external/lfi \
+       external/libburnia \
+       external/openxr-sdk \
+       hardware/qcom-caf/sm8850 \
+       system/software_defined_vehicle
 
 mkdir -p vendor/duoples device/xiaomi/lavender
 cp -r /tmp/custom/vendor/duoples/* vendor/duoples/ 2>/dev/null || true
