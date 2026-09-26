@@ -3,7 +3,7 @@ set -e
 
 # ==============================================================================
 # DuoplesOS Crave.io Full Compilation Trigger (Redmi Note 7 - lavender)
-# Uses /bin/bash execution with reliable stray project cleaning
+# Uses /bin/bash execution with complete orphan project pruning
 # ==============================================================================
 
 WORKSPACE="/home/crave_workspace"
@@ -42,35 +42,50 @@ set -e
 rm -rf .repo/local_manifests /tmp/custom
 mkdir -p .repo/local_manifests /tmp/custom
 curl -sL -A \"Mozilla/5.0\" https://github.com/Duoples/duoplesos-rom/archive/refs/heads/master.tar.gz -o /tmp/rom.tar.gz && tar -xzf /tmp/rom.tar.gz -C /tmp/custom --strip-components=1
-cp /tmp/custom/manifests/duoplesos_lavender.xml .repo/local_manifests/
+cp /tmp/custom/manifests/duoplesos_lavender.xml .repo/local_manifests/; \
 /opt/crave/resync.sh
 
-echo \"[*] Pruning stray non-manifest directories...\"
-rm -rf packages/modules/NpuManager \
-       packages/modules/WebApp \
-       packages/modules/GenericBootstrappingArchitecture \
-       packages/modules/ImsStack \
-       packages/modules/WebViewBootstrap \
-       packages/apps/PersonalContext \
-       packages/apps/Login \
-       packages/apps/VirtualGamepad \
-       prebuilts/module_sdk/NpuManager \
-       prebuilts/module_sdk/WebApp \
-       prebuilts/module_sdk/WebViewBootstrap \
-       prebuilts/rust-toolchain \
-       system/fs/fs_mgr \
-       system/lfi \
-       external/java-diff-utils \
-       external/pcollections \
-       external/failsafe \
-       external/jctools \
-       external/jipp \
-       external/jmustache \
-       external/lfi \
-       external/libburnia \
-       external/openxr-sdk \
-       hardware/qcom-caf/sm8850 \
-       system/software_defined_vehicle
+echo \"[*] Pruning all non-23.2 orphaned directories...\"
+rm -rf \
+  packages/services/display_safety \
+  packages/services/DroidfoodAttestationFixer \
+  device/google/sdv \
+  device/google/sdv_display_safety \
+  hardware/sdv \
+  system/software_defined_vehicle \
+  system/lfi \
+  system/fs/casefolding_remover \
+  system/fs/fs_mgr \
+  system/libskuconfig \
+  system/memory/amemdiff \
+  system/memory/guardian \
+  system/memory/libwrapfd \
+  system/acpi/bert_collector \
+  packages/modules/NpuManager \
+  packages/modules/WebApp \
+  packages/modules/GenericBootstrappingArchitecture \
+  packages/modules/ImsStack \
+  packages/modules/WebViewBootstrap \
+  packages/apps/PersonalContext \
+  packages/apps/Login \
+  packages/apps/VirtualGamepad \
+  prebuilts/module_sdk/NpuManager \
+  prebuilts/module_sdk/WebApp \
+  prebuilts/module_sdk/WebViewBootstrap \
+  prebuilts/module_sdk/UprobeStats \
+  prebuilts/rust-toolchain \
+  external/java-diff-utils \
+  external/pcollections \
+  external/failsafe \
+  external/jctools \
+  external/jipp \
+  external/jmustache \
+  external/lfi \
+  external/libburnia \
+  external/openxr-sdk \
+  external/acpica \
+  external/animal-sniffer \
+  hardware/qcom-caf/sm8850
 
 mkdir -p vendor/duoples device/xiaomi/lavender
 cp -r /tmp/custom/vendor/duoples/* vendor/duoples/ 2>/dev/null || true
