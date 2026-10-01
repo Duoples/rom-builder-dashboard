@@ -1,0 +1,22 @@
+[Unit]
+Description=DuoplesOS Crave.io Real-Time Build & Log Bridge Daemon
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/crave_workspace
+Environment="PYTHONUNBUFFERED=1"
+Environment="DASHBOARD_URL=http://192.168.2.90:3780"
+Environment="CRAVE_BIN=/home/crave"
+Environment="CRAVE_CONF=/home/crave.conf"
+Environment="CRAVE_WORKSPACE=/home/crave_workspace"
+ExecStart=/usr/bin/python3 -u /home/crave_workspace/crave_log_bridge.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

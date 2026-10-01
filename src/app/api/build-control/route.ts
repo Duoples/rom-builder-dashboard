@@ -6,20 +6,27 @@ export async function POST(req: NextRequest) {
   try {
     const {
       action,
-      device = "violet",
-      branch = "lineage-23.0",
+      device = "lavender",
+      branch = "lineage-23.2",
       cores = 6,
       environment = "crave",
     } = await req.json();
 
     if (action === "start") {
       const isCrave = environment === "crave";
+      const devName =
+        device === "lavender"
+          ? "Xiaomi Redmi Note 7"
+          : device === "violet"
+          ? "Xiaomi Redmi Note 7 Pro"
+          : device;
+
       const newBuild = updateActiveBuild({
         id: `build_${device}_${Date.now()}`,
         device,
-        deviceName: device === "violet" ? "Xiaomi Redmi Note 7 Pro" : device,
-        romName: isCrave ? "DuoplesOS 1.0 (Crave.io)" : "DuoplesOS 1.0 (Self-Hosted)",
-        version: "1.0-BP2A.250805.005",
+        deviceName: devName,
+        romName: isCrave ? "DuoplesOS 2.0 (Crave.io)" : "DuoplesOS 2.0 (Self-Hosted)",
+        version: "2.0-BP4A-Android17",
         branch,
         status: "syncing",
         stage: "repo_sync",
