@@ -236,10 +236,16 @@ def main():
                                 "message": "Ninja compilation started"
                             })
 
-                    # Send lines in batches of 40
-                    batch_size = 40
-                    for i in range(0, len(new_lines), batch_size):
-                        chunk = new_lines[i:i + batch_size]
+                    # Prevent flooding dashboard if thousands of lines backlog exist
+                    if len(new_lines) > 500:
+                        lines_to_send = new_lines[-200:]
+                    else:
+                        lines_to_send = new_lines
+
+                    # Send lines in batches of 50
+                    batch_size = 50
+                    for i in range(0, len(lines_to_send), batch_size):
+                        chunk = lines_to_send[i:i + batch_size]
                         post_log_batch(chunk, "stdout", current_stage)
 
                 # Track failure transition
